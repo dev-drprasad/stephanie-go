@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/aws/aws-sdk-go/aws"
@@ -32,7 +33,6 @@ var dryRun = false
 
 // ScrapeMentors hit twitter API and get twitters mentors and store them in dynamoDB
 func ScrapeMentors() []Mentor {
-
 	api := anaconda.NewTwitterApiWithCredentials(accessToken, accessTokenSecret, consumerKey, consumerSecret)
 
 	qp := url.Values{}
@@ -55,11 +55,12 @@ func ScrapeMentors() []Mentor {
 			if tweet.QuotedStatus != nil {
 
 				mentor := Mentor{
-					FullName: tweet.User.Name,
-					UserName: tweet.User.ScreenName,
-					Bio:      tweet.User.Description,
-					Tweet:    tweet.FullText,
-					TweetID:  tweet.IdStr,
+					FullName:     tweet.User.Name,
+					UserName:     tweet.User.ScreenName,
+					Bio:          tweet.User.Description,
+					Tweet:        tweet.FullText,
+					TweetID:      tweet.IdStr,
+					ProfileImage: strings.Replace(tweet.User.ProfileImageUrlHttps, "_normal", "", 1),
 				}
 				if len(tweet.User.URL) > 0 {
 					mentorWebsite := getMentorWebsite(tweet.User.URL)
@@ -67,7 +68,7 @@ func ScrapeMentors() []Mentor {
 						mentor.Website = mentorWebsite
 					}
 				}
-				// fmt.Println(mentor)
+				mentors = append(mentors, mentor)
 				if !dryRun {
 					av, _ := dynamodbattribute.MarshalMap(mentor)
 
@@ -83,7 +84,6 @@ func ScrapeMentors() []Mentor {
 					}
 				}
 				fmt.Println(mentor.Tweet)
-				mentors = append(mentors, mentor)
 			}
 		}
 	}

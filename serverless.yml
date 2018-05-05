@@ -70,7 +70,10 @@ functions:
   fetch:
     handler: bin/run
     events:
-      - schedule: cron(0 12 * * ? *) # every day 12 PM
+      - schedule: cron(0 0,12 * * ? *) # every 12 hours
+      - http:
+          path: /trigger
+          method: GET
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
