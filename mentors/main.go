@@ -55,6 +55,7 @@ func ScrapeMentors() []Mentor {
 			if tweet.QuotedStatus != nil {
 
 				mentor := Mentor{
+					UserID:       tweet.User.IdStr,
 					FullName:     tweet.User.Name,
 					UserName:     tweet.User.ScreenName,
 					Bio:          tweet.User.Description,

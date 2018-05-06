@@ -2,6 +2,7 @@ package mentors
 
 // Mentor holds mentor informantion
 type Mentor struct {
+	UserID       string `json:"user_id"`
 	FullName     string `json:"full_name"`
 	UserName     string `json:"username"`
 	Bio          string `json:"bio"`
