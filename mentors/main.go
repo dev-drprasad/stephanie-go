@@ -29,20 +29,7 @@ func getMentorWebsite(twitterURL string) string {
 	return website
 }
 
-var dryRun = false
-
-// ScrapeMentors hit twitter API and get twitters mentors and store them in dynamoDB
-func ScrapeMentors() []Mentor {
-	api := anaconda.NewTwitterApiWithCredentials(accessToken, accessTokenSecret, consumerKey, consumerSecret)
-
-	qp := url.Values{}
-	qp.Set("tweet_mode", "extended")
-	qp.Set("count", "100")
-	// qp.Set("since_id", "987788865212768256")
-
-	searchResult, _ := api.GetSearch("https://twitter.com/sehurlburt/status/889004724669661184", qp)
-	fmt.Println(searchResult.Metadata.MaxId)
-
+func getMentorsFromTwitterResult(result anaconda.SearchResponse, sourceTweetID string) []Mentor {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-east-2"),
 	})
@@ -51,17 +38,18 @@ func ScrapeMentors() []Mentor {
 	if err == nil {
 		svc := dynamodb.New(sess)
 
-		for _, tweet := range searchResult.Statuses {
+		for _, tweet := range result.Statuses {
 			if tweet.QuotedStatus != nil {
 
 				mentor := Mentor{
-					UserID:       tweet.User.IdStr,
-					FullName:     tweet.User.Name,
-					UserName:     tweet.User.ScreenName,
-					Bio:          tweet.User.Description,
-					Tweet:        tweet.FullText,
-					TweetID:      tweet.IdStr,
-					ProfileImage: strings.Replace(tweet.User.ProfileImageUrlHttps, "_normal", "", 1),
+					UserID:        tweet.User.IdStr,
+					FullName:      tweet.User.Name,
+					UserName:      tweet.User.ScreenName,
+					Bio:           tweet.User.Description,
+					Tweet:         tweet.FullText,
+					TweetID:       tweet.IdStr,
+					ProfileImage:  strings.Replace(tweet.User.ProfileImageUrlHttps, "_normal", "", 1),
+					SourceTweetID: sourceTweetID,
 				}
 				if len(tweet.User.URL) > 0 {
 					mentorWebsite := getMentorWebsite(tweet.User.URL)
@@ -91,4 +79,32 @@ func ScrapeMentors() []Mentor {
 	return mentors
 }
 
+var dryRun = false
+
+// ScrapeMentors hit twitter API and get twitters mentors and store them in dynamoDB
+func ScrapeMentors() []Mentor {
+	api := anaconda.NewTwitterApiWithCredentials(accessToken, accessTokenSecret, consumerKey, consumerSecret)
+
+	qp := url.Values{}
+	qp.Set("tweet_mode", "extended")
+	qp.Set("count", "100")
+	// qp.Set("since_id", "987788865212768256")
+
+	result := make([]Mentor, 0)
+
+	sourceTweetIds := []string{"993733247161925632", "889004724669661184"}
+
+	for _, tweetID := range sourceTweetIds {
+		searchResult, _ := api.GetSearch("https://twitter.com/sehurlburt/status/"+tweetID, qp)
+		fmt.Println(searchResult.Metadata.MaxId)
+		mentors := getMentorsFromTwitterResult(searchResult, tweetID)
+		result = append(result, mentors...)
+	}
+
+	return result
+
+}
+
 // https://twitter.com/nnja/status/984197138371391489
+
+// https://twitter.com/sehurlburt/status/993733247161925632
